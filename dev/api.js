@@ -84,15 +84,17 @@ app.post("/receive-new-block", (req, res) => {
   const lastBlock = bitcoin.getLastBlock();
 
   if (
-    newBlock.index != lastBlock.index + 1 ||
-    newBlock.prevBlockHash != lastBlock.hash
+    newBlock.index !== lastBlock.index + 1 ||
+    newBlock.previousBlockHash !== lastBlock.hash
   ) {
     res.json({ note: "Not OK" });
+    return;
   }
   // TODO: check hash also
 
   bitcoin.chain.push(newBlock);
   bitcoin.pendingTransactions = [];
+
   res.json({ note: "OK " });
 });
 
