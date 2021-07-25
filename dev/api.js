@@ -19,9 +19,23 @@ app.get("/blockchain", (req, res) => {
 });
 
 app.post("/transaction", (req, res) => {
-  const { amount, sender, recipient } = req.body;
-  const blockIdx = bitcoin.createNewTransaction(amount, sender, recipient);
+  const { newTransaction } = req.body;
+  const blockIdx = bitcoin.appendTransactionToPendingList(newTransaction);
   res.json({ note: `Transaction will be added in block ${blockIdx}` });
+});
+
+app.post("/transaction/broadcast", (req, res) => {
+  const { amount, sender, recipient } = req.body;
+  const trans = bitcoin.createNewTransaction(amount, sender, recipient);
+  bitcoin.appendTransactionToPendingList(trans);
+
+  const requests = bitcoin.networkNodes.map((node) => {
+    return axios.post(`${node}/transaction`, { newTransaction: trans });
+  });
+
+  Promise.all(requests).then((_) => {
+    res.json({ note: `OK` });
+  });
 });
 
 app.get("/mine", (req, res) => {
@@ -38,17 +52,48 @@ app.get("/mine", (req, res) => {
     nonce
   );
 
-  bitcoin.createNewTransaction(12.5, "00", nodeAddr);
-
   const newBlock = bitcoin.createNewBlock(
     nonce,
     prevBlockHash,
     currentBlockHash
   );
-  res.json({
-    note: "New block is mined successfully",
-    block: newBlock,
+
+  const requests = bitcoin.networkNodes.map((node) => {
+    return axios.post(`${node}/receive-new-block`, { newBlock });
   });
+
+  Promise.all(requests).then((_) => {
+    axios
+      .post(`${bitcoin.currentNodeUrl}/transaction/broadcast`, {
+        amount: 12.5,
+        sender: "00",
+        recipient: nodeAddr,
+      })
+      .then((_) => {
+        res.json({
+          note: "New block is mined successfully",
+          block: newBlock,
+        });
+      });
+  });
+});
+
+app.post("/receive-new-block", (req, res) => {
+  const { newBlock } = req.body;
+
+  const lastBlock = bitcoin.getLastBlock();
+
+  if (
+    newBlock.index != lastBlock.index + 1 ||
+    newBlock.prevBlockHash != lastBlock.hash
+  ) {
+    res.json({ note: "Not OK" });
+  }
+  // TODO: check hash also
+
+  bitcoin.chain.push(newBlock);
+  bitcoin.pendingTransactions = [];
+  res.json({ note: "OK " });
 });
 
 app.post("/register-node-and-broadcast-node", (req, res) => {
