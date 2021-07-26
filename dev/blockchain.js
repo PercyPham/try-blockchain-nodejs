@@ -98,7 +98,6 @@ Blockchain.prototype.chainIsValid = function (chain) {
   }
 
   const genesisBlock = chain[0];
-  console.log("genesisBlock", genesisBlock);
   if (
     genesisBlock.nonce !== 100 ||
     genesisBlock.previousBlockHash !== "0" ||

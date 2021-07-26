@@ -148,6 +148,38 @@ app.post("/register-nodes-bulk", (req, res) => {
   res.json({ note: "OK" });
 });
 
+app.get("/consessus", async (req, res) => {
+  const blockchainReses = await Promise.all(
+    bitcoin.networkNodes.map((node) => {
+      return axios.get(`${node}/blockchain`);
+    })
+  );
+
+  const blockchains = await blockchainReses.map((res) => res.data);
+
+  let longestChain = bitcoin.chain;
+  let pendingTransactions = bitcoin.pendingTransactions;
+
+  blockchains.forEach((blockchain) => {
+    if (blockchain.chain.length <= longestChain.length) return;
+
+    if (bitcoin.chainIsValid(blockchain.chain)) {
+      longestChain = blockchain.chain;
+      pendingTransactions = blockchain.pendingTransactions;
+    }
+  });
+
+  if (bitcoin.chain === longestChain) {
+    res.json({ note: "Chain has not been changed", chain: bitcoin.chain });
+    return;
+  }
+
+  bitcoin.chain = longestChain;
+  bitcoin.pendingTransactions = pendingTransactions;
+
+  res.json({ note: "This chain has been replaced", chain: bitcoin.chain });
+});
+
 app.listen(port, () => {
   console.log(`Server is listening on port ${port} ...`);
 });
