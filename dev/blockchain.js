@@ -46,7 +46,7 @@ Blockchain.prototype.createNewTransaction = function (
     amount,
     sender,
     recipient,
-    transactionId: uuid().replace("-", ""),
+    transactionId: uuid().replace(/-/g, ""),
   };
   return transaction;
 };
@@ -108,6 +108,45 @@ Blockchain.prototype.chainIsValid = function (chain) {
   }
 
   return true;
+};
+
+Blockchain.prototype.getBlock = function (blockHash) {
+  for (const block of this.chain) {
+    if (block.hash === blockHash) return block;
+  }
+  return null;
+};
+
+Blockchain.prototype.getTransaction = function (tranId) {
+  for (const block of this.chain) {
+    for (const tran of block.transactions) {
+      if (tran.transactionId === tranId) return { transaction: tran, block };
+    }
+  }
+  return { transaction: null, block: null };
+};
+
+Blockchain.prototype.getAddressData = function (address) {
+  const addrTrans = [];
+  this.chain.forEach((block) => {
+    block.transactions.forEach((tran) => {
+      if (address === tran.sender || address === tran.recipient)
+        addrTrans.push(tran);
+    });
+  });
+
+  let balance = 0;
+  addrTrans.forEach((tran) => {
+    if (address === tran.sender) balance -= tran.amount;
+    if (address === tran.recipient) balance += tran.amount;
+  });
+
+  return {
+    addressData: {
+      transactions: addrTrans,
+      balance,
+    },
+  };
 };
 
 module.exports = Blockchain;

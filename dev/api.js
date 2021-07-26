@@ -5,7 +5,7 @@ const Blockchain = require("./blockchain");
 
 const port = process.argv[2];
 
-const nodeAddr = uuid().replace("-", "");
+const nodeAddr = uuid().replace(/-/g, "");
 
 const bitcoin = new Blockchain();
 bitcoin.setCurrentNodeUrl(`http://localhost:${port}`);
@@ -178,6 +178,25 @@ app.get("/consessus", async (req, res) => {
   bitcoin.pendingTransactions = pendingTransactions;
 
   res.json({ note: "This chain has been replaced", chain: bitcoin.chain });
+});
+
+app.get("/blocks/:blockHash", (req, res) => {
+  const foundBlock = bitcoin.getBlock(req.params.blockHash);
+  res.json({ block: foundBlock });
+});
+
+app.get("/transactions/:transactionId", (req, res) => {
+  const found = bitcoin.getTransaction(req.params.transactionId);
+  res.json(found);
+});
+
+app.get("/addresses/:address", (req, res) => {
+  const data = bitcoin.getAddressData(req.params.address);
+  res.json(data);
+});
+
+app.get("/block-explorer", (req, res) => {
+  res.sendFile("./block-explorer/index.html", { root: __dirname });
 });
 
 app.listen(port, () => {
