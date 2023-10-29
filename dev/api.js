@@ -3,7 +3,7 @@ const { v4: uuid } = require("uuid");
 const axios = require("axios");
 const Blockchain = require("./blockchain");
 
-const port = process.argv[2];
+const port = process.argv[2] || 4000;
 
 const nodeAddr = uuid().replace(/-/g, "");
 
